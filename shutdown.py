@@ -1,7 +1,7 @@
 # Script shutdowns the servers which
 # IDRAC IP addresses are listed in the
 # file servers.txt
-
+import requests
 
 # url to API shutdown route of the IDRAC Redfish API
 url = 'https://%s/redfish/v1/Systems/System.Embedded.1/Actions/ComputerSystem.Reset'
@@ -28,7 +28,7 @@ def shutdown_servers():
     """
     for server in read_from_file():
         print(url % server.strip())
-        #requests.post((url % server), json=options)
+        requests.post((url % server), json=options)
         pass
 
 
