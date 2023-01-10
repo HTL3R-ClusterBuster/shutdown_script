@@ -1,11 +1,26 @@
 # Script shutdowns the servers which
 # IDRAC IP addresses are listed in the
 # file servers.txt
-import sys
 
+import sys
 import requests
 import os
+import logging
+
 from dotenv import load_dotenv
+
+
+# configure logger
+logger = logging.getLogger()
+formatter = logging.Formatter("%(asctime)s; %(levelname)s: %(message)s", "%Y-%m-%d %H:%M:%S")
+file_handler = logging.FileHandler('shutdown.log')
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+stream_handler = logging.StreamHandler(sys.stdout)
+stream_handler.setFormatter(formatter)
+logger.addHandler(stream_handler)
+logger.setLevel(logging.DEBUG)
+
 
 # url to API shutdown route of the IDRAC Redfish API
 url = 'https://%s/redfish/v1/Systems/System.Embedded.1/Actions/ComputerSystem.Reset'
@@ -42,7 +57,7 @@ def shutdown_servers():
         try:
             send_shutdown(session, (url % server.strip()))
         except Exception as e:
-            print(f'Error while connecting to server: {server} \n{e}')
+            logger.error(f'Error while connecting to server: {server} {e}')
 
 
 def send_shutdown(session, address):
@@ -54,9 +69,9 @@ def send_shutdown(session, address):
     """
     response = session.post(address, json=options, timeout=5)
     if response.status_code < 300:
-        print(f'Successfully send signal to {address}')
+        logger.info(f'Successfully send signal to {address}')
     else:
-        print(f'Request to {address} failed with status code {response.status_code}')
+        logger.error(f'Request to {address} failed with status code {response.status_code}')
 
 
 def check_env():
@@ -67,7 +82,7 @@ def check_env():
     load_dotenv()
     for var in required:
         if not os.getenv(var):
-            print(f'ERROR in .env! {var} is required but not configured.')
+            logger.critical(f'Invalid .env! {var} is required but not configured.')
             sys.exit()
         else:
             env_vars[var] = os.getenv(var)
@@ -75,7 +90,9 @@ def check_env():
 
 if __name__ == '__main__':
     # check if env is configured correctly
+    logger.debug('Loading .env')
     check_env()
 
     # call shutdown_server() method
+    logger.debug('Initiate Shutdown')
     shutdown_servers()
