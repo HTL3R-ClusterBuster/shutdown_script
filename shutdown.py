@@ -1,11 +1,12 @@
 # Script shutdowns the servers which
 # IDRAC IP addresses are listed in the
 # file servers.txt
-
+import argparse
 import sys
 import requests
 import os
 import logging
+import urllib3
 
 from dotenv import load_dotenv
 
@@ -21,6 +22,12 @@ stream_handler.setFormatter(formatter)
 logger.addHandler(stream_handler)
 logger.setLevel(logging.DEBUG)
 
+# configure argparse
+parser = argparse.ArgumentParser(
+    prog='Shutdown script for Dell servers with IDRAC'
+)
+parser.add_argument("-s", "--start", action='store_true', dest="start", help="Explicitly starts server, not ")
+
 
 # url to API shutdown route of the IDRAC Redfish API
 url = 'https://%s/redfish/v1/Systems/System.Embedded.1/Actions/ComputerSystem.Reset'
@@ -29,6 +36,13 @@ url = 'https://%s/redfish/v1/Systems/System.Embedded.1/Actions/ComputerSystem.Re
 options = {
     'ResetType': 'PushPowerButton'
 }
+
+# get args
+args = parser.parse_args()
+if args.start:
+    options = {
+        'ResetType': 'On'
+    }
 
 # Name of the required ENV
 required = ['USER', 'PASSWORD']
@@ -67,7 +81,7 @@ def send_shutdown(session, address):
     :param address: the address to send the request to
     :return:
     """
-    response = session.post(address, json=options, timeout=5)
+    response = session.post(address, json=options, timeout=5, verify=False)
     if response.status_code < 300:
         logger.info(f'Successfully send signal to {address}')
     else:
